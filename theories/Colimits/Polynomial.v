@@ -164,9 +164,9 @@ Section Preservation_of_Products.
   Proof. induction p. simpl. rewrite concat_1p, concat_p1. exact 1. Defined.
    
   Theorem equiv_of_equivs1 k
-    : colim_shift_seq_to_colim_seq _ _ 
-        o colim_succ_seq_to_colim_seq _ o assocB k
-      == colim_shift_seq_to_colim_seq _ _.
+    : colim_shift_seq_to_colim_seq B k 
+        o colim_succ_seq_to_colim_seq (shift_seq B k) o assocB k
+      == colim_shift_seq_to_colim_seq B (k.+1).
   Proof.
     srapply seq_colimit_uniq.
     - intros i x. simpl. srapply (J (R i k)^).
@@ -180,6 +180,25 @@ Section Preservation_of_Products.
       unfold RPlus. srapply (L (glue _)).
   Defined.
 
+  Theorem equiv_of_equivs2 i x
+    : equiv_const_fib_shifted (i;x) 
+        o colim_succ_seq_to_colim_seq (fib_seq_to_seq constB (i;x))
+      = colim_succ_seq_to_colim_seq (shift_seq B i) o assocB i
+        o equiv_const_fib_shifted (i.+1; x^+).
+  Proof.
+    srapply path_forall; srapply seq_colimit_uniq.
+    - intros j y. exact 1.
+    - intros j y.
+      rewrite ap_compose. rewrite concat_p1, concat_1p.
+      rewrite colim_succ_seq_to_colim_seq_beta_glue.
+      rewrite (ap_compose _ (colim_succ_seq_to_colim_seq _)).
+      rewrite (ap_compose _ (assocB i)).
+      rewrite equiv_const_fib_shifted_beta.
+      rewrite equiv_const_fib_shifted_beta.
+      (* need to develop assocB inj law here *)
+      admit.
+  Admitted.
+
   Theorem constB_fiber (a : Colimit A)
     : fib_seq_to_type_fam constB a -> Colimit B.
   Proof.
@@ -187,7 +206,7 @@ Section Preservation_of_Products.
     - intros i x. srapply equiv_const_fib.
     - intros i j p x; destruct p.
       srapply moveR_transport_p.
-      srapply path_forall. intro y.
+      srapply path_forall; intro y.
       srapply (_@(transport_forall_constant_codomain
                 (glue A i x)^
                 (equiv_const_fib (i;x)) y)^).
