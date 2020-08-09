@@ -21,6 +21,10 @@ Local Open Scope path_scope.
     with products, i.e. that
     
       Colimit A * Colimit B = Colimit (i |-> A i * B i) 
+
+    This is obtained as a corollary of the main result of
+    Sojakova, Rijke and van Doorn (LICS 2020), as formalized
+    in Colimits/Sequential.v.
   *)
 
 Section Preservation_of_Products.
@@ -30,7 +34,7 @@ Section Preservation_of_Products.
   Let f n := @arr _ A n _ 1.
   Let g n := @arr _ B n _ 1.
 
-  (* The sequence whose ith component is the type A_i x B_i *)
+  (* The sequence i |-> A_i x B_i *)
 
   Definition times (C D : Sequence) : Sequence.
   Proof.
@@ -45,9 +49,10 @@ Section Preservation_of_Products.
   := Build_FibSequence A (fun x => B x.1) (fun x => g x.1).
 
   (* Some natural number tomfoolery. *)
-  Local Definition R k i
-    := nat_plus_n_Sm k i : (k + i).+1 = (k + i.+1)%nat.
+  Local Definition R i k
+    := nat_plus_n_Sm i k : (i + k).+1 = (i + k.+1)%nat.
 
+  (* The following three pieces of coherence crop up repeatedly. *)
   Local Lemma RCoh {n m} (p : n = m) z
     : (coe (ap B p) z)^+ = coe (ap B (ap S p)) (z^+).
   Proof. induction p; exact 1. Defined.
@@ -64,12 +69,11 @@ Section Preservation_of_Products.
   Defined.
 
   (* An equivalence C(k, n, a) -> B(k+n). *)
-
   Definition F x k
     : fib_seq_to_seq constB x k <~> B (k+x.1)%nat.
   Proof.
     srapply Build_Equiv.
-    + revert x; induction k as [|k h]; intro x.
+    + revert x; induction k as [| k h]; intro x.
       - exact idmap.
       - exact (coe (ap B (R k x.1)^) o h x^++).
     + revert x; induction k as [| k h]; intro x.
@@ -77,24 +81,27 @@ Section Preservation_of_Products.
       - srapply isequiv_compose.
   Defined.
 
-  Local Lemma up_F x k y
-    : (F x k y)^+ = F x k.+1 y^+.
+  (* The equivalence commutes with shift-by-1. *)
+  Local Lemma up_F x k y : (F x k y)^+ = F x k.+1 y^+.
   Proof. 
     revert y; revert x; induction k as [| k h]; intros x y.
     + exact 1.
     + srapply (RPlus _ _ _ @ ap (coe _) (h (x^++) y)).
   Defined.
 
-  (* At each fiber, the sequentialised constant B sequence is
-     just the shifted sequence. *)
+  (* Sequentialising constB and taking its colimit starting
+     from (i;x) : sig A yields the same colimit as the sequence
+     B shifted by i. *)
   Definition equiv_const_fib_shifted (x : sig A)
-    : Colimit (fib_seq_to_seq constB x) -> Colimit (shift_seq B x.1).
+    : Colimit (fib_seq_to_seq constB x) <~> Colimit (shift_seq B x.1).
   Proof.
-    srapply functor_colimit; srapply Build_diagram_equiv.
-    - srapply Build_DiagramMap.
-      * intro i. srapply F.
-      * intros k j p; destruct p. srapply up_F.
-    - intro i. srapply equiv_isequiv.
+    srapply Build_Equiv.
+    - srapply functor_colimit; srapply Build_diagram_equiv.
+      + srapply Build_DiagramMap.
+         * intro i. srapply F.
+          * intros k j p; destruct p. srapply up_F.
+      + intro i. srapply equiv_isequiv.
+    - srapply isequiv_functor_colimit.
   Defined.
 
   Lemma equiv_const_fib_shifted_beta (x : sig A) k y
@@ -103,10 +110,9 @@ Section Preservation_of_Products.
          @ glue (shift_seq B x.1) k (F x k y).
   Proof. srapply Colimit_rec_beta_colimp. Defined.
 
-  Definition isequiv_const_fib_shifted (x : sig A)
-    : IsEquiv (equiv_const_fib_shifted x).
-  Proof. srapply isequiv_functor_colimit. Defined.
-
+  (* Because sequential colimits are invariant under dropping a
+     finite prefix of the sequence, the colimit of the 
+     sequentialised B is just the colimit of B. *)
   Definition const_fib_to_B (x : sig A)
     : Colimit (fib_seq_to_seq constB x) -> Colimit B
   := colim_shift_seq_to_colim_seq B x.1 o equiv_const_fib_shifted x.
@@ -126,6 +132,8 @@ Section Preservation_of_Products.
       == (fun y => h (transport _ p^ y)).
   Proof. induction p; intro x; exact 1. Defined.
 
+  (* This equivalence proves that
+      Colimit (i |-> B (i+(k.+1)) = Colimit (i |-> B((i+k).+1)) *)
   Definition assocB k
     : Colimit (shift_seq B k.+1) <~> Colimit (succ_seq (shift_seq B k)).
   Proof.
@@ -145,13 +153,11 @@ Section Preservation_of_Products.
   Definition assocB_ap_inj {i k} {x y} {p : x = y}
     : ap (assocB k) (ap (inj _ i) p)
       = ap (inj (succ_seq (shift_seq B k)) i) (ap (coe (ap B (R i k)^)) p).
-  Proof.
-    destruct p; exact 1.
-  Defined.
+  Proof. destruct p; exact 1. Defined.
 
-  Lemma inj_nat_coe {n m x} (p : n = m)
-    : inj B m (coe (ap B p) x) = inj B n x.
-  Proof. induction p; exact 1. Defined.
+  (* The following are used as lemmas for the final higher coherence 
+      in the upcoming theorem. They are needed because Coq refuses
+      to generalise the appropriate equality. *)
 
   Local Definition J {X Y Z} {x1 x2 : X} {y} {I : forall x, Y x -> Z} (p : x1 = x2)
     : I x2 (coe (ap Y p) y) = I x1 y.
@@ -291,9 +297,7 @@ Section Preservation_of_Products.
 
   Definition seqcolim_corollary
     : Colimit (sig_seq constB) <~> sig (fib_seq_to_type_fam constB).
-  Proof.
-    srapply equiv_seq_colim_sum_to_sum_seq_colim.
-  Defined.
+  Proof. srapply equiv_seq_colim_sum_to_sum_seq_colim. Defined.
 
   Definition equiv_colimTimes_timesColim 
     : Colimit A * Colimit B <~> Colimit (times A B)
@@ -317,14 +321,6 @@ Section Presentations_of_Unit.
 
   Definition equiv_unit_fin0 {X} : Unit <~> (Fin 0 -> X).
   Proof. srapply equiv_empty_rec. Defined.
-  
-  Definition equiv_unit_fin1 {X} : X <~> (Fin 1 -> X).
-  Proof.
-    srapply (equiv_compose' _ (equiv_unit_rec X)).
-    srapply equiv_functor_forall'.
-    - unfold Fin. srapply (sum_empty_l Unit).
-    - intros b. simpl. srapply equiv_idmap.
-  Defined.
 
   Definition equiv_fin_prod {n X} : (Fin n.+1 -> X) <~> (Fin n -> X) * X.
   Proof.
@@ -336,23 +332,10 @@ Section Presentations_of_Unit.
       - srapply equiv_unit_rec.
   Defined.
 
-  Definition equiv_fin_prod_2 {X} : (Fin 2 -> X) <~> X * X.
-  Proof.
-    srapply (equiv_compose' _ equiv_fin_prod).
-    srapply equiv_functor_prod'.
-    - srapply (equiv_inverse equiv_unit_fin1).
-    - exact equiv_idmap.
-  Defined.
-
   (* The constant sequence on an object along with a
      proof that Colimit (sequence_const Unit) <~> Unit. *)
-
-  Definition sequence_const (D : Type) : Sequence.
-  Proof.
-    srapply Build_Sequence.
-    - exact (fun _ => D).
-    - exact (fun _ x => x).
-  Defined.
+  Definition sequence_const (D : Type) : Sequence
+  := Build_Sequence (fun _ => D) (fun _ x => x).
 
   Lemma equal_one_everywhere (i : nat) (x : Unit)
     : inj (sequence_const Unit) i x = inj (sequence_const Unit) 0 tt.
@@ -362,30 +345,21 @@ Section Presentations_of_Unit.
     + exact (glue (sequence_const Unit) i tt @ IHi).
   Defined.
 
-  Lemma contr_sequence_unit : Contr (Colimit (sequence_const Unit)).
+  Global Instance contr_sequence_unit : Contr (Colimit (sequence_const Unit)).
   Proof.
     srapply Build_Contr.
     + exact (inj (sequence_const Unit) 0 tt).
     + srapply Colimit_ind.
-      - intros i z. symmetry. srapply equal_one_everywhere.
-      - intros i j Q x. induction Q. simpl.
+      - intros i x. symmetry. srapply equal_one_everywhere.
+      - intros i j p x; induction p. induction x.
         srapply (transport_paths_r _ _ @ _).
-        srapply moveR_Vp. 
-        srapply moveL_pV.
-        induction x. exact 1.
+        srapply moveR_Vp. srapply moveL_pV. 
+        exact 1.
   Defined.
 
   Theorem equiv_constUnit_Unit 
     : Colimit (sequence_const Unit) <~> Unit.
-  Proof.
-    srapply equiv_adjointify.
-    - srapply Colimit_rec. srapply Build_Cocone.
-      + intros i x. exact tt.
-      + intros i j Q x; induction Q. exact 1.
-    - intro x. exact (inj (sequence_const Unit) 0 x).
-    - simpl. intro x. induction x. exact 1.
-    - simpl. intro x. srapply path_contr.
-  Defined.
+  Proof. srapply equiv_contr_unit. Defined.
 
 End Presentations_of_Unit.
 
