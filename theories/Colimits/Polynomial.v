@@ -107,13 +107,17 @@ Section Preservation_of_Products.
     : IsEquiv (equiv_const_fib_shifted x).
   Proof. srapply isequiv_functor_colimit. Defined.
 
-  Definition equiv_const_fib (x : sig A)
+  Definition const_fib_to_B (x : sig A)
     : Colimit (fib_seq_to_seq constB x) -> Colimit B
   := colim_shift_seq_to_colim_seq B x.1 o equiv_const_fib_shifted x.
 
-  Theorem isequiv_const_fib (x : sig A)
-    : IsEquiv (equiv_const_fib x).
+  Theorem isequiv_const_fib_to_B (x : sig A)
+    : IsEquiv (const_fib_to_B x).
   Proof. srapply isequiv_compose. Defined.
+
+  Definition equiv_const_fib (x : sig A)
+    : Colimit (fib_seq_to_seq constB x) <~> Colimit B
+  := Build_Equiv _ _ (const_fib_to_B x) _.
 
   Definition transport_forall_constant_codomain
     {X Y : Type} {C : X -> Type}
@@ -170,7 +174,7 @@ Section Preservation_of_Products.
         = J (ap F p)^ @ Q x2 y.
   Proof. induction p. simpl. rewrite concat_1p, concat_p1. exact 1. Defined.
    
-  Theorem equiv_of_equivs1 k
+  Local Theorem equiv_of_equivs1 k
     : colim_shift_seq_to_colim_seq B k 
         o colim_succ_seq_to_colim_seq (shift_seq B k) o assocB k
       == colim_shift_seq_to_colim_seq B (k.+1).
@@ -187,7 +191,7 @@ Section Preservation_of_Products.
       unfold RPlus. srapply (L (glue _)).
   Defined.
 
-  Theorem equiv_of_equivs2 i x
+  Local Theorem equiv_of_equivs2 i x
     : equiv_const_fib_shifted (i;x) 
         o colim_succ_seq_to_colim_seq (fib_seq_to_seq constB (i;x))
       == colim_succ_seq_to_colim_seq (shift_seq B i) o assocB i
@@ -218,6 +222,18 @@ Section Preservation_of_Products.
       exact 1.
   Defined.
 
+  Theorem equiv_of_equivs x
+    : equiv_const_fib x^++
+      == equiv_const_fib x
+          oE equiv_colim_succ_seq_to_colim_seq (fib_seq_to_seq constB x).
+  Proof.
+   intro y. destruct x as [i x]. unfold equiv_const_fib.
+   symmetry. srapply (
+     ap (fun q => colim_shift_seq_to_colim_seq B i q) _
+     @ equiv_of_equivs1 i _).
+   srapply (equiv_of_equivs2 i x y).
+  Defined.
+
   Theorem constB_fiber (a : Colimit A)
     : fib_seq_to_type_fam constB a -> Colimit B.
   Proof.
@@ -231,15 +247,27 @@ Section Preservation_of_Products.
                 (equiv_const_fib (i;x)) y)^).
       rewrite inv_V. rewrite transport_idmap_ap.
       rewrite fib_seq_to_type_fam_beta_glue.
-      unfold equiv_const_fib.
-      rewrite (equiv_of_equivs2 i x y).
-      rewrite (equiv_of_equivs1 i _).
-      exact 1.
+      srapply (equiv_of_equivs (i;x) y).
   Defined.
 
   Theorem isequiv_constB_fiber a : IsEquiv (constB_fiber a).
   Proof.
-    admit.
+    srapply isequiv_adjointify.
+    - intro b; revert a; srapply Colimit_ind.
+      + intros i x. simpl.
+        exact ((equiv_const_fib (i;x))^-1 b).
+      + intros i j p; induction p; intro x.
+        rewrite transport_idmap_ap.
+        rewrite fib_seq_to_type_fam_beta_glue.
+        srapply (moveR_equiv_M' (equiv_colim_succ_seq_to_colim_seq _)).
+        srapply (_ 
+          @ (equiv_inverse_compose
+              (equiv_colim_succ_seq_to_colim_seq _)
+              (equiv_const_fib (i;x)) b)).
+        srapply (equiv_inverse_homotopy _ _ _ b).
+        symmetry. srapply (equiv_of_equivs (i;x)).
+    - admit.
+    - admit.
   Admitted.
   
   Definition equiv_constB_fiber a
