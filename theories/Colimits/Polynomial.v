@@ -127,7 +127,7 @@ Section Preservation_of_Products.
   Proof.
     srapply equiv_functor_colimit; srapply Build_diagram_equiv.
     - srapply Build_DiagramMap.
-      + intros i. srapply (coe (ap B (R i k)^)).
+      + intros i. simpl. srapply (coe (ap B (R i k)^)).
       + intros i j p x; induction p. srapply (RPlus _ _ _).
     - intros i. simpl. srapply (isequiv_transport idmap _).
   Defined.
@@ -138,9 +138,16 @@ Section Preservation_of_Products.
         @ glue (succ_seq (shift_seq B k)) i (coe (ap B (R i k)^) x).
   Proof. srapply Colimit_rec_beta_colimp. Defined.
 
+  Definition assocB_ap_inj {i k} {x y} {p : x = y}
+    : ap (assocB k) (ap (inj _ i) p)
+      = ap (inj (succ_seq (shift_seq B k)) i) (ap (coe (ap B (R i k)^)) p).
+  Proof.
+    destruct p; exact 1.
+  Defined.
+
   Lemma inj_nat_coe {n m x} (p : n = m)
     : inj B m (coe (ap B p) x) = inj B n x.
-  Proof. induction p. exact 1. Defined.
+  Proof. induction p; exact 1. Defined.
 
   Local Definition J {X Y Z} {x1 x2 : X} {y} {I : forall x, Y x -> Z} (p : x1 = x2)
     : I x2 (coe (ap Y p) y) = I x1 y.
@@ -190,14 +197,26 @@ Section Preservation_of_Products.
     - intros j y. exact 1.
     - intros j y.
       rewrite ap_compose. rewrite concat_p1, concat_1p.
+      (* simplifying the LHS *)
       rewrite colim_succ_seq_to_colim_seq_beta_glue.
+      rewrite equiv_const_fib_shifted_beta.
+      (* simplifying the RHS *)
       rewrite (ap_compose _ (colim_succ_seq_to_colim_seq _)).
       rewrite (ap_compose _ (assocB i)).
       rewrite equiv_const_fib_shifted_beta.
-      rewrite equiv_const_fib_shifted_beta.
-      (* need to develop assocB inj law here *)
-      admit.
-  Admitted.
+      rewrite ap_pp, assocB_ap_inj.
+      rewrite ap_pp, colim_succ_seq_to_colim_seq_ap_inj.
+      rewrite assocB_beta.
+      rewrite ap_pp, colim_succ_seq_to_colim_seq_ap_inj.
+      rewrite (colim_succ_seq_to_colim_seq_beta_glue (shift_seq B _) _). 
+      rewrite concat_p_pp.
+      rewrite <- (ap_pp (inj (shift_seq B i) j.+2)).
+      srapply whiskerR.
+      srapply (ap (fun q => ap (inj _ j.+2) q) _).
+      rewrite (ap_V (coe (ap B (R j.+1 i)^))).
+      srapply moveL_pV. srapply moveR_Vp. srapply moveL_pV.
+      exact 1.
+  Defined.
 
   Theorem constB_fiber (a : Colimit A)
     : fib_seq_to_type_fam constB a -> Colimit B.
