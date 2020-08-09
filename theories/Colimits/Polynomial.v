@@ -234,7 +234,7 @@ Section Preservation_of_Products.
    srapply (equiv_of_equivs2 i x y).
   Defined.
 
-  Theorem constB_fiber (a : Colimit A)
+  Definition constB_fiber (a : Colimit A)
     : fib_seq_to_type_fam constB a -> Colimit B.
   Proof.
     revert a; srapply Colimit_ind.
@@ -257,23 +257,10 @@ Section Preservation_of_Products.
 
   Theorem isequiv_constB_fiber a : IsEquiv (constB_fiber a).
   Proof.
-    srapply isequiv_adjointify.
-    - intro b; revert a; srapply Colimit_ind.
-      + intros i x. simpl.
-        exact ((equiv_const_fib (i;x))^-1 b).
-      + intros i j p; induction p; intro x.
-        rewrite transport_idmap_ap.
-        rewrite fib_seq_to_type_fam_beta_glue.
-        srapply (moveR_equiv_M' (equiv_colim_succ_seq_to_colim_seq _)).
-        srapply (_ 
-          @ (equiv_inverse_compose
-              (equiv_colim_succ_seq_to_colim_seq _)
-              (equiv_const_fib (i;x)) b)).
-        srapply (equiv_inverse_homotopy _ _ _ b).
-        symmetry. srapply (equiv_of_equivs (i;x)).
-    - admit.
-    - admit.
-  Admitted.
+    revert a; srapply Colimit_ind.
+    - intros i x. simpl. srapply isequiv_const_fib_to_B.
+    - intros i j p x; induction p. srapply equiv_hprop_allpath.
+  Defined.
   
   Definition equiv_constB_fiber a
     : fib_seq_to_type_fam constB a <~> Colimit B
