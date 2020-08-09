@@ -190,10 +190,10 @@ Section Preservation_of_Products.
   Theorem equiv_of_equivs2 i x
     : equiv_const_fib_shifted (i;x) 
         o colim_succ_seq_to_colim_seq (fib_seq_to_seq constB (i;x))
-      = colim_succ_seq_to_colim_seq (shift_seq B i) o assocB i
-        o equiv_const_fib_shifted (i.+1; x^+).
+      == colim_succ_seq_to_colim_seq (shift_seq B i) o assocB i
+         o equiv_const_fib_shifted (i.+1; x^+).
   Proof.
-    srapply path_forall; srapply seq_colimit_uniq.
+    srapply seq_colimit_uniq.
     - intros j y. exact 1.
     - intros j y.
       rewrite ap_compose. rewrite concat_p1, concat_1p.
@@ -231,8 +231,11 @@ Section Preservation_of_Products.
                 (equiv_const_fib (i;x)) y)^).
       rewrite inv_V. rewrite transport_idmap_ap.
       rewrite fib_seq_to_type_fam_beta_glue.
-      admit.
-  Admitted.
+      unfold equiv_const_fib.
+      rewrite (equiv_of_equivs2 i x y).
+      rewrite (equiv_of_equivs1 i _).
+      exact 1.
+  Defined.
 
   Theorem isequiv_constB_fiber a : IsEquiv (constB_fiber a).
   Proof.
