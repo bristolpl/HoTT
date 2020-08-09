@@ -245,9 +245,14 @@ Section Preservation_of_Products.
       srapply (_@(transport_forall_constant_codomain
                 (glue A i x)^
                 (equiv_const_fib (i;x)) y)^).
-      rewrite inv_V. rewrite transport_idmap_ap.
-      rewrite fib_seq_to_type_fam_beta_glue.
-      srapply (equiv_of_equivs (i;x) y).
+      srapply (equiv_of_equivs (i;x) y @ _).
+      srapply (ap (equiv_const_fib _)).
+      symmetry.
+      set (R :=
+        ap (fun z => transport _ z y) (inv_V (glue _ i x))).
+      srapply (R @ _).
+      srapply (transport_idmap_ap _ _ _ _ _ _ @ _).
+      srapply (happly (fib_seq_to_type_fam_beta_glue _ _ _) y).
   Defined.
 
   Theorem isequiv_constB_fiber a : IsEquiv (constB_fiber a).
