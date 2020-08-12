@@ -396,11 +396,8 @@ Section Preservation_of_Finite_Exponents.
     srapply equiv_functor_colimit; srapply diagram_equiv_finlim0_constUnit.
   Defined.
 
-  Lemma equiv_colim_finlim0_unit : Colimit (sequence_finlim 0) <~> Unit.
-  Proof.
-    srapply (equiv_compose' equiv_constUnit_Unit _).
-    srapply equiv_colim_finlim0_constUnit.
-  Defined.
+  Definition equiv_colim_finlim0_unit : Colimit (sequence_finlim 0) <~> Unit
+  :=  equiv_constUnit_Unit oE equiv_colim_finlim0_constUnit.
 
   Lemma equiv_n_diagrams {n}
    : times (sequence_finlim n) A ~d~ sequence_finlim n.+1.
